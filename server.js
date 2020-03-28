@@ -23,7 +23,12 @@ function action() {
             "View All Employees",
             "Add Employees",
             "Update employee's role",
-            "Update employee's manager"
+            "Update employee's manager",
+            "View employees by manager",
+            "Delete an employee",
+            "Delete a role",
+            "Delete a department",
+            "View department budget"
         ]
     })
 }
@@ -50,7 +55,7 @@ async function doAction(navChoice) {
 
             break;
         case "View All Employees":
-            await queryView("employee")
+            await employeeView()
 
             break;
         case "Add Employees":
@@ -60,11 +65,24 @@ async function doAction(navChoice) {
         case "Update employee's role":
             await updateEmployee()
             break;
-            case "Update employee's manager":
-                await updateManager()
-                break;
-
-
+        case "Update employee's manager":
+            await updateManager()
+            break;
+        case "View employees by manager":
+            await viewByManager()
+            break;
+        case "Delete an employee":
+            await deleteCat("employee")
+            break;
+        case "Delete a role":
+            await deleteCat("roles")
+            break;
+        case "Delete a department":
+            await deleteCat("department")
+            break;
+        case "View department budget":
+            await budgetView()
+            break;
 
         default:
             console.log("REEEEEEEE")
@@ -74,6 +92,26 @@ async function doAction(navChoice) {
 
 function queryView(table) {
     return connection.query(`SELECT * FROM ${table}`, function (err, results) {
+        if (err) throw err;
+        console.table(results)
+        init()
+    }
+    );
+}
+
+function employeeView() {
+    return connection.query(`
+    SELECT e.id, e.first_name, e.last_name,  r.title, d.name, CONCAT(f.first_name," ", f.last_name) AS manager
+    FROM employee e
+       LEFT JOIN
+       roles AS r
+       ON r.id = e.role_id
+       LEFT JOIN
+       department d
+       ON r.department_id = d.id
+       LEFT JOIN
+       employee f
+    ON e.manager_id = f.id;`, function (err, results) {
         if (err) throw err;
         console.table(results)
         init()
@@ -172,11 +210,11 @@ function addEmployee() {
                     choices: choicesArray2
                 }
             ]).then(answers => {
-                
+
                 const jerb = results.filter(results => results.title === answers.role)
                 const jerb3 = (answers.manager.split(" "))
                 const jerb2 = results2.filter(results2 => results2.first_name === jerb3[0])
-                
+
 
                 connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?);", [answers.firstname, answers.lastname, jerb[0].id, jerb2[0].id], function (err, data) {
                     if (err) throw err;
@@ -215,9 +253,9 @@ function updateEmployee() {
                     choices: choicesArray
                 },
             ]).then(answers => {
-    
+
                 const jerb = results.filter(results => results.title === answers.newrole)
-                const jerb2 = results2.filter(results2 => results2.first_name + " " + results2.last_name === answers.which )
+                const jerb2 = results2.filter(results2 => results2.first_name + " " + results2.last_name === answers.which)
                 connection.query("UPDATE employee SET role_id=(?) WHERE id=(?)", [jerb[0].id, jerb2[0].id], function (err, data) {
                     if (err) throw err;
                     console.log(`Updated ${results2.first_name} ${results2.last_name}'s role to ${jerb.title}`)
@@ -231,40 +269,168 @@ function updateEmployee() {
 }
 
 function updateManager() {
-   
-        connection.query("SELECT * FROM employee", function (error, results) {
-            if (error) throw error
-            const choicesArray2 = []
-            results.forEach(element => {
-                choicesArray2.push(element.first_name + " " + element.last_name)
-            })
-            inquirer.prompt([
-                {
-                    name: "which",
-                    type: "list",
-                    message: "Which employee's manager would you like to change?",
-                    choices: choicesArray2
-                },
-                {
-                    name: "newmanager",
-                    type: "list",
-                    message: "Who is the employee's new manager?",
-                    choices: choicesArray2
-                },
-            ]).then(answers => {
 
-    
-                const jerb = results.filter(results => results.first_name + " " + results.last_name === answers.newmanager)
-                const jerb2 = results.filter(results => results.first_name + " " + results.last_name === answers.which)
-                console.log(jerb)
-                console.log(jerb2)
-                connection.query("UPDATE employee SET manager_id=(?) WHERE id=(?)", [jerb[0].id, jerb2[0].id], function (err, data) {
-                    if (err) throw err;
-                    console.log(`Updated ${jerb2[0].first_name} ${jerb2[0].last_name}'s manager to ${jerb[0].first_name} ${jerb[0].last_name}`)
-                    init()
-                })
+    connection.query("SELECT * FROM employee", function (error, results) {
+        if (error) throw error
+        const choicesArray2 = []
+        results.forEach(element => {
+            choicesArray2.push(element.first_name + " " + element.last_name)
+        })
+        inquirer.prompt([
+            {
+                name: "which",
+                type: "list",
+                message: "Which employee's manager would you like to change?",
+                choices: choicesArray2
+            },
+            {
+                name: "newmanager",
+                type: "list",
+                message: "Who is the employee's new manager?",
+                choices: choicesArray2
+            },
+        ]).then(answers => {
+
+
+            const jerb = results.filter(results => results.first_name + " " + results.last_name === answers.newmanager)
+            const jerb2 = results.filter(results => results.first_name + " " + results.last_name === answers.which)
+            connection.query("UPDATE employee SET manager_id=(?) WHERE id=(?)", [jerb[0].id, jerb2[0].id], function (err, data) {
+                if (err) throw err;
+                console.log(`Updated ${jerb2[0].first_name} ${jerb2[0].last_name}'s manager to ${jerb[0].first_name} ${jerb[0].last_name}`)
+                init()
             })
         })
+    })
 
 
 }
+
+function viewByManager() {
+
+    connection.query("SELECT * FROM employee WHERE manager_id IS NULL", function (error, results) {
+        if (error) throw error
+        console.log(results)
+        const choicesArray2 = []
+        results.forEach(element => {
+            choicesArray2.push(element.first_name + " " + element.last_name)
+        })
+        inquirer.prompt([
+            {
+                name: "which",
+                type: "list",
+                message: "Which manager's employee's would you like to see?",
+                choices: choicesArray2
+            },
+
+        ]).then(answers => {
+
+
+            const jerb = results.filter(results => results.first_name + " " + results.last_name === answers.which)
+            connection.query("SELECT * FROM employee WHERE manager_id=(?)", [jerb[0].id], function (err, data) {
+                if (err) throw err;
+                console.table(data)
+                init()
+            })
+        })
+    })
+
+
+}
+
+function deleteCat(table) {
+    return connection.query(`SELECT * FROM ${table}`, function (err, results) {
+        if (err) throw err;
+        console.table(results)
+        const choicesArray2 = []
+        if (table === "employee") {
+            results.forEach(element => {
+                choicesArray2.push(element.first_name + " " + element.last_name)
+            })
+        }
+        if (table === "roles") {
+            results.forEach(element => {
+                choicesArray2.push(element.title)
+            })
+        }
+        if (table === "department") {
+            results.forEach(element => {
+                choicesArray2.push(element.name)
+            })
+        }
+        console.log(choicesArray2)
+        inquirer.prompt([
+            {
+                name: "which",
+                type: "list",
+                message: "Which would you like to delete?",
+                choices: choicesArray2
+            },
+
+        ]).then(answers => {
+
+            if (table === "roles") {
+                const jerb = results.filter(results => results.title === answers.which)
+                connection.query("DELETE FROM roles WHERE roles.title=(?)", [jerb[0].title], function (err, data) {
+                    if (err) throw err;
+                    (`Deleted ${jerb[0].title} from roles!`)
+                    init()
+                })
+            }
+            if (table === "employee") {
+                const jerb = results.filter(results => results.first_name + " " + results.last_name === answers.which)
+                console.log(jerb)
+                connection.query("DELETE FROM employee WHERE employee.id=(?)", [jerb[0].id], function (err, data) {
+                    if (err) throw err;
+                    console.log(`Deleted ${jerb[0].first_name} ${jerb[0].last_name} from employees!`)
+                    init()
+                })
+            }
+            if (table === "department") {
+                const jerb = results.filter(results => results.name === answers.which)
+                connection.query("DELETE FROM department WHERE department.name=(?)", [jerb[0].name], function (err, data) {
+                    if (err) throw err;
+                    (`Deleted ${jerb[0].name} from deparments!`)
+                    init()
+                })
+            }
+
+        })
+    })
+}
+
+function budgetView() {
+    connection.query("SELECT * FROM department", function (error, results) {
+        if (error) throw error
+        const choicesArray2 = []
+        results.forEach(element => {
+            choicesArray2.push(element.name)
+        })
+        inquirer.prompt([
+            {
+                name: "which",
+                type: "list",
+                message: "Which department's budget would you like to see?",
+                choices: choicesArray2
+            },
+
+        ]).then(answers => {
+
+
+            const jerb = results.filter(results => results.name === answers.which)
+            connection.query("SELECT r.department_id, r.salary, d.id FROM roles r INNER JOIN department d ON r.department_id = d.id WHERE department_id=(?)", [jerb[0].id], function (err, data) {
+                const salariesArray = []
+                data.forEach(element => {
+                    salariesArray.push(element.salary)
+                });
+                if (err) throw err;
+                let sum = salariesArray.reduce(function (a, b) {
+                    return a + b;
+                }, 0)
+                console.log(`The total budget for ${jerb[0].name} is $ ${sum}`)
+                init()
+            })
+        })
+    })
+
+}
+// * View the total utilized budget of a department -- ie the combined salaries of all employees in that department

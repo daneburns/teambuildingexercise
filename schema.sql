@@ -26,7 +26,11 @@ CREATE TABLE employee (
   PRIMARY KEY (id)
 );
 
-INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (Montgomery, Burns, 1, null)
+INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("Montgomery", "Burns", 1, null)
+
+-- JOIN
+
+
 
 
 -- * **department**:
