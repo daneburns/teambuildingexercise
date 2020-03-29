@@ -258,7 +258,7 @@ function updateEmployee() {
                 const jerb2 = results2.filter(results2 => results2.first_name + " " + results2.last_name === answers.which)
                 connection.query("UPDATE employee SET role_id=(?) WHERE id=(?)", [jerb[0].id, jerb2[0].id], function (err, data) {
                     if (err) throw err;
-                    console.log(`Updated ${results2.first_name} ${results2.last_name}'s role to ${jerb.title}`)
+                    console.log(`Updated ${jerb2[0].first_name} ${jerb2[0].last_name}'s role to ${jerb[0].title}`)
                     init()
                 })
             })
@@ -307,9 +307,8 @@ function updateManager() {
 
 function viewByManager() {
 
-    connection.query("SELECT * FROM employee WHERE manager_id IS NULL", function (error, results) {
+    connection.query("SELECT * FROM employee", function (error, results) {
         if (error) throw error
-        console.log(results)
         const choicesArray2 = []
         results.forEach(element => {
             choicesArray2.push(element.first_name + " " + element.last_name)
